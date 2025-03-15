@@ -2,14 +2,11 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.stream.*;
 
 public class ValueTranslation {
 
-    // Configuration file path
-    private static final String CONFIG_FILE_PATH = "config.properties";
     // Error log file path
-    private static final String ERROR_LOG_FILE = "error.log";
+    private static final String ERROR_LOG_FILE = "translation_error.log";
     // Delimiters for splitting input and CSV files
     private static final String DELIMITER = "\\|";
     private static final String CSV_DELIMITER = ",";
@@ -19,13 +16,33 @@ public class ValueTranslation {
     private static final Set<String> fieldsToTranslate = new HashSet<>();
     private static final Map<String, String> sharedTranslationGroups = new HashMap<>();
 
-    public static void main(String[] args) {
-        // Load configuration properties
-        Properties config = loadConfig(CONFIG_FILE_PATH);
+    // Main method to translate values based on the configuration file
+    public static void translateValues(String configFilePath) {
+        Properties config = loadConfig(configFilePath);
         if (config == null) return;
 
         // Retrieve file paths and translation settings from config
         String inputFilePath = config.getProperty("inputFilePath");
+        String translationFilePath = config.getProperty("translationFilePath");
+        String fieldsToTranslateStr = config.getProperty("fieldsToTranslate");
+        String sharedTranslationGroupsStr = config.getProperty("sharedTranslationGroups");
+        String outputFilePath = config.getProperty("outputFilePath");
+
+        // Load translation settings
+        loadFieldsToTranslate(fieldsToTranslateStr);
+        loadSharedTranslationGroups(sharedTranslationGroupsStr);
+        loadTranslationMap(translationFilePath);
+
+        // Process the input file and write to the output file
+        processFile(inputFilePath, outputFilePath);
+    }
+
+    // Overloaded method to translate values based on the configuration file and input file
+    public static void translateValues(String configFilePath, String inputFilePath) {
+        Properties config = loadConfig(configFilePath);
+        if (config == null) return;
+
+        // Retrieve translation settings from config
         String translationFilePath = config.getProperty("translationFilePath");
         String fieldsToTranslateStr = config.getProperty("fieldsToTranslate");
         String sharedTranslationGroupsStr = config.getProperty("sharedTranslationGroups");
