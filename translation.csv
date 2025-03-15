@@ -1,0 +1,16 @@
+fieldname,sourcevalue,translatedvalue
+status,active,Active
+status,inactive,Inactive
+category,A,Category A
+category,B,Category B
+category,C,Category C
+type,type1,Type 1
+type,type2,Type 2
+type,type3,Type 3
+region,north,North Region
+region,south,South Region
+region,east,East Region
+region,west,West Region
+department,sales,Sales Department
+department,marketing,Marketing Department
+department,hr,HR Department
