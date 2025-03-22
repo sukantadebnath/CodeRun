@@ -16,6 +16,16 @@ public class ValueTranslation {
     private static final Set<String> fieldsToTranslate = new HashSet<>();
     private static final Map<String, String> sharedTranslationGroups = new HashMap<>();
 
+    // Enum to define transformation types
+    private enum TransformationType {
+        UNIQUE_ID, ONE_TO_ONE, VALUE_TRANSLATION, DEFAULT_VALUE
+    }
+
+    // Map to store transformation types and additional configurations for fields
+    private static final Map<String, TransformationType> fieldTransformationTypes = new HashMap<>();
+    private static final Map<String, String> fieldDefaultValues = new HashMap<>();
+    private static final Map<String, String> uniqueIdAlgorithms = new HashMap<>();
+
     // Main method to translate values based on the configuration file
     public static void translateValues(String configFilePath) {
         Properties config = loadConfig(configFilePath);
@@ -32,6 +42,7 @@ public class ValueTranslation {
         loadFieldsToTranslate(fieldsToTranslateStr);
         loadSharedTranslationGroups(sharedTranslationGroupsStr);
         loadTranslationMap(translationFilePath);
+        loadFieldTransformations(config);
 
         // Process the input file and write to the output file
         processFile(inputFilePath, outputFilePath);
@@ -52,6 +63,7 @@ public class ValueTranslation {
         loadFieldsToTranslate(fieldsToTranslateStr);
         loadSharedTranslationGroups(sharedTranslationGroupsStr);
         loadTranslationMap(translationFilePath);
+        loadFieldTransformations(config);
 
         // Process the input file and write to the output file
         processFile(inputFilePath, outputFilePath);
@@ -100,6 +112,27 @@ public class ValueTranslation {
         }
     }
 
+    // Load transformation types and configurations from the config file
+    private static void loadFieldTransformations(Properties config) {
+        String transformationConfig = config.getProperty("fieldTransformations");
+        if (transformationConfig != null && !transformationConfig.isEmpty()) {
+            Arrays.stream(transformationConfig.split(CSV_DELIMITER))
+                  .map(field -> field.split(":"))
+                  .filter(parts -> parts.length >= 2)
+                  .forEach(parts -> {
+                      String fieldName = parts[0];
+                      TransformationType type = TransformationType.valueOf(parts[1].toUpperCase());
+                      fieldTransformationTypes.put(fieldName, type);
+
+                      if (type == TransformationType.DEFAULT_VALUE && parts.length == 3) {
+                          fieldDefaultValues.put(fieldName, parts[2]);
+                      } else if (type == TransformationType.UNIQUE_ID && parts.length == 3) {
+                          uniqueIdAlgorithms.put(fieldName, parts[2]);
+                      }
+                  });
+        }
+    }
+
     // Process the input file and write the translated output to the output file
     private static void processFile(String inputFilePath, String outputFilePath) {
         ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
@@ -141,11 +174,38 @@ public class ValueTranslation {
     // Translate a line of fields based on the headers
     private static String translateLine(String[] headers, String[] fields) {
         for (int i = 0; i < fields.length; i++) {
-            if (fieldsToTranslate.contains(headers[i])) {
-                fields[i] = translateValue(headers[i], fields[i]);
+            String fieldName = headers[i];
+            TransformationType type = fieldTransformationTypes.getOrDefault(fieldName, TransformationType.ONE_TO_ONE);
+
+            switch (type) {
+                case UNIQUE_ID:
+                    fields[i] = generateUniqueId(fieldName);
+                    break;
+                case VALUE_TRANSLATION:
+                    fields[i] = translateValue(fieldName, fields[i]);
+                    break;
+                case DEFAULT_VALUE:
+                    fields[i] = fieldDefaultValues.getOrDefault(fieldName, fields[i]);
+                    break;
+                case ONE_TO_ONE:
+                default:
+                    // No transformation needed
+                    break;
             }
         }
         return String.join("|", fields);
+    }
+
+    // Generate a unique ID based on the configured algorithm
+    private static String generateUniqueId(String fieldName) {
+        String algorithm = uniqueIdAlgorithms.getOrDefault(fieldName, "default");
+        // Example: Implement a simple unique ID generation logic
+        if ("uuid".equalsIgnoreCase(algorithm)) {
+            return UUID.randomUUID().toString();
+        } else if ("incremental".equalsIgnoreCase(algorithm)) {
+            return String.valueOf(System.nanoTime());
+        }
+        return "unique-" + System.currentTimeMillis();
     }
 
     // Translate a value based on the field name and translation map

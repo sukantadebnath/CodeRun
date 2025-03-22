@@ -13,11 +13,11 @@ public class PASExtraction {
         if (args.length > 1) {
             configFilePath = args[1];
         } else if (args.length == 1) {
-            System.out.println("Using default config file path: " + DEFAULT_CONFIG_FILE_PATH);
+            System.out.println("Using default config file path: " + configFilePath);
         } else {
             System.out.println("Usage: java Main <operation> [configFilePath]");
-            System.out.println("Using default operation: translate");
-            System.out.println("Using default config file path: " + DEFAULT_CONFIG_FILE_PATH);
+            System.out.println("Using default operation: " + operation);
+            System.out.println("Using default config file path: " + configFilePath);
         }
 
         // Execute the specified operation
